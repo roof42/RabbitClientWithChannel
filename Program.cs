@@ -9,15 +9,15 @@ namespace Receive
 {
     class Program
     {
-    public static void Main()
+    public static async Task Main()
         {
             var myChannel = Channel.CreateUnbounded<string>();
             ConnectionFactory factory = CreateRabbitMQFactory();
             using (var connection = factory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
-                FetchMessageAndWriteToChannel(myChannel, channel);
-                InvokeExtermalService(myChannel);
+                await FetchMessageAndWriteToChannel(myChannel, channel);
+                await InvokeExtermalService(myChannel);
                 while (true) { }
             }
 
@@ -29,31 +29,33 @@ namespace Receive
                 return factory;
             }
 
-            static void InvokeExtermalService(Channel<string> myChannel)
+            static async Task InvokeExtermalService(Channel<string> myChannel)
             {
-                _ = Task.Factory.StartNew(() =>
+                _ = await Task.Factory.StartNew(async () =>
                 {
-                    var item = myChannel.Reader.ReadAsync();
-                    Console.WriteLine(item);
+                    var item = await myChannel.Reader.ReadAsync();
+                    Console.WriteLine("From channel t0 somewhere->"+item);
+                    while(true){}
                 });
             }
 
-            static void FetchMessageAndWriteToChannel(Channel<string> myChannel, IModel channel)
+            static async Task FetchMessageAndWriteToChannel(Channel<string> myChannel, IModel channel)
             {
                 channel.QueueDeclare("two.port", true, false, false, null);
 
                 var consumer = new EventingBasicConsumer(channel);
 
-                _ = Task.Factory.StartNew(() =>
+                await Task.Factory.StartNew(() =>
                 {
-                    consumer.Received += (model, ea) =>
+                    consumer.Received += async (model, ea) =>
                     {
                         var body = ea.Body.ToArray();
                         var message = Encoding.UTF8.GetString(body);
-                        myChannel.Writer.WriteAsync(message);
+                        Console.WriteLine("From rabbit to channel->"+message);
+                        await myChannel.Writer.WriteAsync(message);
                     };
+                    
                 });
-
                 channel.BasicConsume("two.port", true, consumer);
             }
         }
