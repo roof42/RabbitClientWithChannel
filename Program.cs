@@ -33,9 +33,11 @@ namespace Receive
             {
                 _ = await Task.Factory.StartNew(async () =>
                 {
-                    var item = await myChannel.Reader.ReadAsync();
-                    Console.WriteLine("From channel t0 somewhere->"+item);
-                    while(true){}
+                    await foreach(var item in myChannel.Reader.ReadAllAsync())
+                    {
+                        Console.WriteLine("From channel t0 somewhere->"+item);
+                        await Task.Delay(1000);
+                    }
                 });
             }
 
