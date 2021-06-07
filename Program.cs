@@ -17,7 +17,7 @@ namespace Receive
             using (var channel = connection.CreateModel())
             {
                 await FetchMessageAndWriteToChannel(myChannel, channel);
-                await InvokeExtermalService(myChannel);
+                await InvokeExternalService(myChannel);
                 while (true) { }
             }
 
@@ -29,7 +29,7 @@ namespace Receive
                 return factory;
             }
 
-            static async Task InvokeExtermalService(Channel<string> myChannel)
+            static async Task InvokeExternalService(Channel<string> myChannel)
             {
                 _ = await Task.Factory.StartNew(async () =>
                 {
